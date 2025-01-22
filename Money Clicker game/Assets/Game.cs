@@ -3,9 +3,12 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class Game : MonoBehaviour
 {
+    public static Game Instance; // Singleton-instans
+
     // Start is called before the first frame update
 
     //Clicker
@@ -35,8 +38,22 @@ public class Game : MonoBehaviour
     public TextMeshProUGUI upgradeText;
     public int upgradePrize;
 
-    void Start()
+    private void Awake()
     {
+        // Sørg for, at kun én instans af Game.cs eksisterer
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject); // Gør GameObjectet persistent
+            Debug.Log("Game singleton initialiseret korrekt.");
+        }
+        else
+        {
+            Destroy(gameObject); // Slet duplikater
+            Debug.LogWarning("Duplikat Game-instans slettet.");
+            return;
+        }
+
         //Clicker
         currentScore = 0;
         hitPower = 1;
@@ -70,7 +87,11 @@ public class Game : MonoBehaviour
 
         upgradePrize = PlayerPrefs.GetInt("upgradePrize", 50);
         
-
+        // Tjek om Manager eksisterer
+        if (Manager.Instance == null)
+        {
+            Debug.LogError("Manager instance is missing! Make sure Manager is in the scene.");
+        }
     }
 
     // Update is called once per frame
@@ -123,9 +144,7 @@ public class Game : MonoBehaviour
     {
         currentScore += hitPower;
     }
-
     //Shop
-
     public void Shop1()
     {
         if (currentScore >= shop1Prize)
@@ -135,6 +154,16 @@ public class Game : MonoBehaviour
             amount1Profit += 1;
             x += 1;
             shop1Prize += 25;
+            
+            // Tilføj null-check
+            if (Manager.Instance != null)
+            {
+                Manager.Instance.BuyUnit();
+            }
+            else
+            {
+                Debug.LogError("Cannot buy unit - Manager instance is null!");
+            }
         }
     }
     public void Shop2()
@@ -146,10 +175,11 @@ public class Game : MonoBehaviour
             amount2Profit += 5;
             x += 5;
             shop2Prize += 125;
+            
+            // Brug Manager.Instance i stedet for manager
+            Manager.Instance.BuyUnit();
         }
     }
-
-
     //Upgrade
     public void Upgrade()
     {
@@ -159,5 +189,82 @@ public class Game : MonoBehaviour
             hitPower *= 2;
             upgradePrize *= 3;
         }
+    }
+
+    public void ResetAllProgress()
+    {
+        // Nulstil alle gemte værdier
+        PlayerPrefs.DeleteKey("currentScore");
+        PlayerPrefs.DeleteKey("hitPower");
+        PlayerPrefs.DeleteKey("x");
+        PlayerPrefs.DeleteKey("shop1Prize");
+        PlayerPrefs.DeleteKey("shop2Prize");
+        PlayerPrefs.DeleteKey("amount1");
+        PlayerPrefs.DeleteKey("amount1Profit");
+        PlayerPrefs.DeleteKey("amount2");
+        PlayerPrefs.DeleteKey("amount2Profit");
+        PlayerPrefs.DeleteKey("upgradePrize");
+
+        // Nulstil lokale variabler
+        currentScore = 0;
+        hitPower = 1;
+        x = 0f;
+        shop1Prize = 25;
+        shop2Prize = 125;
+        amount1 = 0;
+        amount1Profit = 1;
+        amount2 = 0;
+        amount2Profit = 5;
+        upgradePrize = 50;
+
+        // Opdater UI
+        UpdateShopUI();
+
+        // Nulstil Manager data (units)
+        if (Manager.Instance != null)
+        {
+            Manager.Instance.ResetGameData();
+        }
+        else
+        {
+            Debug.LogError("Manager instance is null - cannot reset manager data!");
+        }
+
+        // Gem de nulstillede værdier
+        SaveGame();
+        PlayerPrefs.Save();
+
+        // Genindlæs scenen for at sikre korrekt nulstilling
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+
+        Debug.Log("All progress has been reset!");
+    }
+
+    private void UpdateShopUI()
+    {
+        // Opdater butikkens UI
+        shop1text.text = "Tier 1: " + shop1Prize + " $";
+        shop2text.text = "Tier 2: " + shop2Prize + " $";
+        amount1Text.text = $"Tier 1: {amount1} arts, ${amount1Profit}/s";
+        amount2Text.text = $"Tier 2: {amount2} arts, ${amount2Profit}/s";
+        upgradeText.text = "Cost: " + upgradePrize + " $";
+    }
+
+    public void ShowResetConfirmation()
+    {
+        // Brug dit UI system til at vise en bekræftelsesdialog
+        // F.eks. hvis du bruger Unitys nye UI system:
+        // confirmationDialog.SetActive(true);
+    }
+
+    public void ConfirmReset()
+    {
+        ResetAllProgress();
+        // confirmationDialog.SetActive(false);
+    }
+
+    public void CancelReset()
+    {
+        // confirmationDialog.SetActive(false);
     }
 }
