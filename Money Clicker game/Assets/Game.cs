@@ -38,6 +38,11 @@ public class Game : MonoBehaviour
     public TextMeshProUGUI upgradeText;
     public int upgradePrize;
 
+    //New
+    public int allUpgradePrize;
+    public TextMeshProUGUI allUpgradeText;
+    public float profitMultiplier;
+
     private void Awake()
     {
         // Sørg for, at kun én instans af Game.cs eksisterer
@@ -59,6 +64,7 @@ public class Game : MonoBehaviour
         hitPower = 1;
         scoreIncreasedPerSecond = 1;
         x = 0f;
+        profitMultiplier = 1f;
 
         //We must set all default variable before load
         shop1Prize = 25;
@@ -68,8 +74,6 @@ public class Game : MonoBehaviour
         amount2 = 0;
         amount2Profit = 5;
 
-        //Reset line
-        //PlayerPrefs.DeleteAll();
 
         //Load
         currentScore = PlayerPrefs.GetFloat("currentScore", 0f);
@@ -86,13 +90,17 @@ public class Game : MonoBehaviour
         amount2Profit = PlayerPrefs.GetFloat("amount2Profit", 5f);
 
         upgradePrize = PlayerPrefs.GetInt("upgradePrize", 50);
-        
+
         // Tjek om Manager eksisterer
         if (Manager.Instance == null)
         {
             Debug.LogError("Manager instance is missing! Make sure Manager is in the scene.");
         }
+
+        //New
+        allUpgradePrize = 500;
     }
+
 
     // Update is called once per frame
     void Update()
@@ -103,20 +111,23 @@ public class Game : MonoBehaviour
         currentScore += scoreIncreasedPerSecond * Time.deltaTime;
 
         //Shop
-        shop1text.text = "Tier 1: " + shop1Prize + " $";
-        shop2text.text = "Tier 2: " + shop2Prize + " $";
+        shop1text.text = "Serf: " + shop1Prize + " $";
+        shop2text.text = "Freeman: " + shop2Prize + " $";
 
         //Amount
-        amount1Profit = amount1 * 1;
-        amount2Profit = amount2 * 5;
+        amount1Profit = amount1 * 1 * profitMultiplier;
+        amount2Profit = amount2 * 5 * profitMultiplier;
 
-        amount1Text.text = $"Tier 1: {amount1} arts, ${amount1Profit}/s";
-        amount2Text.text = $"Tier 2: {amount2} arts, ${amount2Profit}/s";
+        amount1Text.text = "Serf: [" + amount1 + "] " + amount1Profit + "$/s";
+        amount2Text.text = "Freeman: [" + amount2 + "] " + amount2Profit + "$/s";
 
         //Upgrade
         upgradeText.text = "Cost: " + upgradePrize + " $";
 
         SaveGame();
+
+        //New
+        allUpgradeText.text = "Cost: " + allUpgradePrize + " $";
 
     }
 
@@ -154,7 +165,7 @@ public class Game : MonoBehaviour
             amount1Profit += 1;
             x += 1;
             shop1Prize += 25;
-            
+
             // Tilføj null-check
             if (Manager.Instance != null)
             {
@@ -175,7 +186,7 @@ public class Game : MonoBehaviour
             amount2Profit += 5;
             x += 5;
             shop2Prize += 125;
-            
+
             // Brug Manager.Instance i stedet for manager
             Manager.Instance.BuyUnit();
         }
@@ -191,6 +202,23 @@ public class Game : MonoBehaviour
         }
     }
 
+    //New
+    public void AllProfitsUpgrade()
+    {
+        if (currentScore>=allUpgradePrize)
+        {
+            currentScore -= allUpgradePrize;
+            x *= 2;
+            allUpgradePrize *= 3;
+
+            profitMultiplier *= 2;
+            amount1Profit = amount1 * 1 * profitMultiplier;
+            amount2Profit = amount2 * 5 * profitMultiplier;
+
+            // Log for debugging
+            Debug.Log("All profits upgraded! Multiplier is now: " + profitMultiplier);
+        }
+    }
     public void ResetAllProgress()
     {
         // Nulstil alle gemte værdier
@@ -250,21 +278,4 @@ public class Game : MonoBehaviour
         upgradeText.text = "Cost: " + upgradePrize + " $";
     }
 
-    public void ShowResetConfirmation()
-    {
-        // Brug dit UI system til at vise en bekræftelsesdialog
-        // F.eks. hvis du bruger Unitys nye UI system:
-        // confirmationDialog.SetActive(true);
-    }
-
-    public void ConfirmReset()
-    {
-        ResetAllProgress();
-        // confirmationDialog.SetActive(false);
-    }
-
-    public void CancelReset()
-    {
-        // confirmationDialog.SetActive(false);
-    }
 }
